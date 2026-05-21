@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Helpers\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,6 +30,11 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         $user = auth()->user();
+        
+        // Log doctor login activity
+        if ($user->role === 'doctor') {
+            ActivityLogger::logDoctorLogin($user);
+        }
 
         if ($user->role === 'admin') {
             return redirect()->intended('/dashboard'); // dashboard bawaan laravel

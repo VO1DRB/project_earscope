@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Diagnosis;
-use App\Models\DiagnosisImg;
+use App\Models\DiagnosisImage;
+use App\Models\ConsultationRequest;
+use App\Helpers\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 
 class DiagnosisController extends Controller
 {
@@ -27,10 +30,17 @@ class DiagnosisController extends Controller
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('diagnosis_images', 'public');
 
-            DiagnosisImg::create([
+            DiagnosisImage::create([
                 'diagnosis_id' => $diagnosis->id,
                 'image_path' => $path,
             ]);
+        }
+        
+        // Log consultation uploaded (diagnosis result)
+        $consultation = ConsultationRequest::findOrFail($request->consultation_req_id);
+        $doctor = Auth::user()->doctor;
+        if ($doctor) {
+            ActivityLogger::logConsultationUploaded($diagnosis, $doctor);
         }
 
         return back()->with('success', 'Diagnosis berhasil disimpan');

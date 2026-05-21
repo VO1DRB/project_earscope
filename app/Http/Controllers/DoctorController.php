@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConsultationRequest;
+use App\Helpers\ActivityLogger;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -69,6 +70,10 @@ class DoctorController extends Controller
         $this->authorizeDoctor($consultation);
 
         $consultation->update(['status' => 'approved']);
+        
+        // Log consultation approval
+        $doctor = $this->getDoctor();
+        ActivityLogger::logConsultationApproved($consultation, $doctor);
 
         return response()->json([
             'message' => 'Consultation approved successfully',
@@ -86,6 +91,10 @@ class DoctorController extends Controller
         $this->authorizeDoctor($consultation);
 
         $consultation->update(['status' => 'rejected']);
+        
+        // Log consultation rejection
+        $doctor = $this->getDoctor();
+        ActivityLogger::logConsultationRejected($consultation, $doctor);
 
         return response()->json([
             'message' => 'Consultation rejected successfully',

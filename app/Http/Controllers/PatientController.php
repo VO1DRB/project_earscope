@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\ConsultationReq;
+use App\Models\ConsultationRequest;
 use App\Models\Doctor;
+use App\Helpers\ActivityLogger;
 
 class PatientController extends Controller
 {
@@ -30,12 +31,16 @@ class PatientController extends Controller
             'complaint' => 'required',
         ]);
 
-        ConsultationReq::create([
-            'patient_id' => auth()->user()->patient->id,
+        $patient = auth()->user()->patient;
+        $consultation = ConsultationRequest::create([
+            'patient_id' => $patient->id,
             'doctor_id' => $request->doctor_id,
             'complaint' => $request->complaint,
             'status' => 'pending',
         ]);
+        
+        // Log consultation request
+        ActivityLogger::logConsultationRequested($consultation, $patient);
 
         return redirect('/patient/dashboard');
     }
