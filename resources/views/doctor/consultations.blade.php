@@ -82,7 +82,9 @@
                                                 </button>
 
                                                 @if($consultation->status === 'pending')
-                                                    <button type="button" onclick="approveConsultation('{{ $consultation->id }}')" class="text-green-600 hover:text-green-900 underline">
+                                                    <button type="button"
+                                                        onclick="openScheduleModal('{{ $consultation->id }}', true)"
+                                                        class="text-green-600 hover:text-green-900 underline">
                                                         Approve
                                                     </button>
                                                     <button type="button" onclick="rejectConsultation('{{ $consultation->id }}')" class="text-red-600 hover:text-red-900 underline">
@@ -91,8 +93,8 @@
                                                 @endif
 
                                                 @if($consultation->status === 'approved')
-                                                    <button type="button" onclick="openScheduleModal('{{ $consultation->id }}')" class="text-blue-600 hover:text-blue-900 underline">
-                                                        Schedule
+                                                    <button type="button" onclick="openScheduleModal('{{ $consultation->id }}', false)" class="text-blue-600 hover:text-blue-900 underline">
+                                                        Reschedule
                                                     </button>
                                                 @endif
                                             </td>
@@ -112,38 +114,9 @@
     @include('doctor.modals.schedule-modal')
 
     <script>
-        // Approve Consultation
+        // Approve -> delegate ke schedule modal
         function approveConsultation(consultationId) {
-            if (confirm('Are you sure you want to approve this consultation?')) {
-                $.ajax({
-                    url: '/doctor/consultation/' + consultationId + '/approve',
-                    type: 'POST',
-                    data: {
-                        _token: $('[name="_token"]').val()
-                    },
-                    success: function(response) {
-                        // Update status badge
-                        $('#status-' + consultationId).removeClass('bg-yellow-100 text-yellow-800').addClass('bg-green-100 text-green-800').text('Approved');
-                        
-                        // Hide approve/reject, show schedule button
-                        let row = $('#row-' + consultationId);
-                        row.find('button').each(function() {
-                            if ($(this).text() === 'Approve' || $(this).text() === 'Reject') {
-                                $(this).remove();
-                            }
-                        });
-                        
-                        // Add schedule button
-                        let actionsCell = row.find('td:last');
-                        actionsCell.html('<button type="button" onclick="openDetailModal(' + consultationId + ')" class="text-indigo-600 hover:text-indigo-900 underline">View</button> <button type="button" onclick="openScheduleModal(' + consultationId + ')" class="text-blue-600 hover:text-blue-900 underline">Schedule</button>');
-                        
-                        showNotification('Consultation approved successfully', 'success');
-                    },
-                    error: function(xhr) {
-                        showNotification('Failed to approve consultation', 'error');
-                    }
-                });
-            }
+            openScheduleModal(consultationId, true);
         }
 
         // Reject Consultation

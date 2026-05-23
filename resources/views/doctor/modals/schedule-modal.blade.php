@@ -8,10 +8,13 @@
         <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
             <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg leading-6 font-medium text-gray-900">
-                        Schedule Consultation
-                    </h3>
-                    <button type="button" onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-500">
+                    <div>
+                        <h3 class="text-lg leading-6 font-medium text-gray-900" id="scheduleModalTitle">
+                            Approve &amp; Schedule Consultation
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-0.5" id="scheduleModalSubtitle">Tentukan jadwal konsultasi untuk pasien ini</p>
+                    </div>
+                    <button type="button" onclick="closeScheduleModal()" class="text-gray-400 hover:text-gray-500 ml-4">
                         <span class="sr-only">Close</span>
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -26,7 +29,7 @@
                     <div>
                         <label for="scheduledDate" class="block text-sm font-medium text-gray-700">Scheduled Date</label>
                         <input type="date" id="scheduledDate" name="scheduled_date" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                        <small class="text-gray-500">Must be after today</small>
+                        <small class="text-gray-500">Today or later</small>
                     </div>
 
                     <div>
@@ -49,8 +52,9 @@
             </div>
 
             <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
-                <button type="button" id="scheduleSubmitBtn" onclick="submitSchedule()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
-                    Schedule
+                <button type="button" id="scheduleSubmitBtn" onclick="submitSchedule()" class="w-full inline-flex justify-center items-center gap-2 rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span id="scheduleSubmitLabel">Approve &amp; Schedule</span>
                 </button>
                 <button type="button" onclick="closeScheduleModal()" class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm">
                     Cancel
@@ -61,17 +65,27 @@
 </div>
 
 <script>
-    function openScheduleModal(consultationId) {
+    function openScheduleModal(consultationId, isApprove) {
         $('#consultationId').val(consultationId);
         $('#scheduleForm')[0].reset();
         $('#scheduleError').addClass('hidden');
         $('#scheduleSuccess').addClass('hidden');
         $('#scheduleModal').removeClass('hidden');
-        
-        // Set minimum date to tomorrow
-        let tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        let minDate = tomorrow.toISOString().split('T')[0];
+
+        // Adjust title & button based on context
+        if (isApprove) {
+            $('#scheduleModalTitle').text('Approve & Schedule Consultation');
+            $('#scheduleSubmitLabel').text('Approve & Schedule');
+            $('#scheduleSubmitBtn').removeClass('bg-indigo-600 hover:bg-indigo-700').addClass('bg-green-600 hover:bg-green-700');
+        } else {
+            $('#scheduleModalTitle').text('Ubah Jadwal Konsultasi');
+            $('#scheduleSubmitLabel').text('Simpan Jadwal');
+            $('#scheduleSubmitBtn').removeClass('bg-green-600 hover:bg-green-700').addClass('bg-indigo-600 hover:bg-indigo-700');
+        }
+
+        // Set minimum date to today
+        let today = new Date();
+        let minDate = today.toISOString().split('T')[0];
         $('#scheduledDate').attr('min', minDate);
     }
 
@@ -90,7 +104,7 @@
         }
 
         $('#scheduleSubmitBtn').prop('disabled', true);
-        $('#scheduleSubmitBtn').html('Scheduling...');
+        $('#scheduleSubmitLabel').text('Menyimpan...');
 
         $.ajax({
             url: '/doctor/consultation/' + consultationId + '/schedule',
@@ -101,14 +115,29 @@
                 scheduled_time: scheduledTime
             },
             success: function(response) {
-                showScheduleSuccess('Consultation scheduled successfully!');
+                showScheduleSuccess('Konsultasi berhasil disetujui dan dijadwalkan!');
+
+                // Update status badge
+                let statusBadge = $('#status-' + consultationId);
+                statusBadge.removeClass('bg-yellow-100 text-yellow-800 bg-red-100 text-red-800')
+                           .addClass('bg-green-100 text-green-800').text('Approved');
+
+                // Update scheduled date cell
+                let row = $('#row-' + consultationId);
+                let schedCell = row.find('td').eq(4); // column index 4 = Scheduled
+                let dateFormatted = new Date(scheduledDate).toLocaleDateString('id-ID', {day:'2-digit', month:'short', year:'numeric'});
+                schedCell.html('<span class="font-medium text-gray-800">' + dateFormatted + '</span><br><span class="text-xs text-gray-400">' + scheduledTime + '</span>');
+
+                // Replace action buttons: remove Approve/Reject, keep View + Schedule
+                let actionsCell = row.find('td:last');
+                actionsCell.html('<button type="button" onclick="openDetailModal(' + consultationId + ')" class="text-indigo-600 hover:text-indigo-900 underline">View</button> <button type="button" onclick="openScheduleModal(' + consultationId + ', false)" class="text-blue-600 hover:text-blue-900 underline">Reschedule</button>');
+
                 setTimeout(function() {
                     closeScheduleModal();
-                    location.reload();
-                }, 1500);
+                }, 1800);
             },
             error: function(xhr) {
-                let errorMessage = 'An error occurred';
+                let errorMessage = 'Terjadi kesalahan';
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMessage = xhr.responseJSON.error;
                 } else if (xhr.responseJSON && xhr.responseJSON.errors) {
@@ -116,7 +145,7 @@
                 }
                 showScheduleError(errorMessage);
                 $('#scheduleSubmitBtn').prop('disabled', false);
-                $('#scheduleSubmitBtn').html('Schedule');
+                $('#scheduleSubmitLabel').text('Approve & Schedule');
             }
         });
     }

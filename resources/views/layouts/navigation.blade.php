@@ -1,12 +1,16 @@
 @php
-    $role = Auth::user() ? Auth::user()->role : 'admin';
+    $role = Auth::user() ? Auth::user()->role : null;
+
     if ($role === 'doctor') {
         $dashboardRouteName = 'doctor.dashboard';
     } elseif ($role === 'patient') {
         $dashboardRouteName = 'patient.dashboard';
+    } elseif ($role === 'admin') {
+        $dashboardRouteName = 'admin.dashboard';
     } else {
-        $dashboardRouteName = 'dashboard';
+        $dashboardRouteName = 'login'; // fallback aman
     }
+
     $dashboardRoute = route($dashboardRouteName);
 @endphp
 
@@ -23,7 +27,7 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+                <div class="hidden space-x-10 sm:-my-px sm:ms-10 sm:flex">
                     <x-nav-link :href="$dashboardRoute" :active="request()->routeIs($dashboardRouteName)">
                         {{ __('Dashboard') }}
                     </x-nav-link>
@@ -44,6 +48,13 @@
                         </x-nav-link>
                         <x-nav-link href="/patient/diagnoses" :active="request()->is('patient/diagnoses*')">
                             {{ __('Diagnoses Results') }}
+                        </x-nav-link>
+                    @elseif($role === 'admin')
+                        <x-nav-link href="/admin/doctors" :active="request()->is('admin/doctors*')">
+                             {{ __('Doctor Management') }}
+                        </x-nav-link>
+                        <x-nav-link href="/admin/patients" :active="request()->is('admin/patients*')">
+                             {{ __('Patient Data') }}
                         </x-nav-link>
                     @endif
                 </div>
@@ -118,6 +129,13 @@
                 </x-responsive-nav-link>
                 <x-responsive-nav-link href="/patient/diagnoses" :active="request()->is('patient/diagnoses*')">
                     {{ __('Hasil Pemeriksaan') }}
+                </x-responsive-nav-link>
+            @elseif($role === 'admin')
+                <x-responsive-nav-link href="/admin/doctors" :active="request()->is('admin/doctors*')">
+                    {{ __('Doctor Management') }}
+                </x-responsive-nav-link>
+                <x-responsive-nav-link href="/admin/patients" :active="request()->is('admin/patients*')">
+                    {{ __('Patient Data') }}
                 </x-responsive-nav-link>
             @endif
         </div>

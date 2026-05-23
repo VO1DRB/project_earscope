@@ -23,7 +23,7 @@
 
                 <div class="bg-white p-6 rounded-lg shadow">
                     <h3 class="text-gray-500">Patients Handled</h3>
-                    <p class="text-2xl font-bold">{{ $doneCount }}</p>
+                    <p class="text-2xl font-bold">{{ $patientsHandledCount }}</p>
                 </div>
 
             </div>

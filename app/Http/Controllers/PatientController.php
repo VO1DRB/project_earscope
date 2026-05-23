@@ -13,7 +13,7 @@ class PatientController extends Controller
     {
         $patient = auth()->user()->patient;
 
-        $consultations = $patient->consultations;
+        $consultations = $patient->consultations()->with('doctor')->latest()->get();
 
         return view('patient.dashboard', compact('consultations'));
     }
@@ -42,6 +42,7 @@ class PatientController extends Controller
         // Log consultation request
         ActivityLogger::logConsultationRequested($consultation, $patient);
 
-        return redirect('/patient/dashboard');
+        return redirect()->route('patient.dashboard')
+            ->with('success', 'Konsultasi berhasil dikirim! Menunggu konfirmasi dari dokter.');
     }
 }

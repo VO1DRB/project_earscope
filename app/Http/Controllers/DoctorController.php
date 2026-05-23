@@ -36,20 +36,42 @@ class DoctorController extends Controller
     {
         $doctor = $this->getDoctor();
 
-        // stats
+        // Jumlah konsultasi yang masih menunggu persetujuan
         $pendingCount = ConsultationRequest::where('doctor_id', $doctor->id)
             ->where('status', 'pending')
             ->count();
 
+        // Jumlah konsultasi yang dijadwalkan hari ini (approved & scheduled today)
         $todayScheduleCount = ConsultationRequest::where('doctor_id', $doctor->id)
+            ->where('status', 'approved')
             ->whereDate('scheduled_date', Carbon::today())
             ->count();
 
-        $doneCount = ConsultationRequest::where('doctor_id', $doctor->id)
-            ->where('status', 'done')
-            ->count();
+        // Debug: Log what we're querying for today's date
+        $todayDebug = ConsultationRequest::where('doctor_id', $doctor->id)
+            ->where('status', 'approved')
+            ->get();
+        
+        \Log::info('Today debug for doctor ' . $doctor->id . ':', [
+            'today' => Carbon::today()->format('Y-m-d'),
+            'total_approved' => $todayDebug->count(),
+            'consultations' => $todayDebug->map(function($c) {
+                return [
+                    'id' => $c->id,
+                    'scheduled_date' => $c->scheduled_date,
+                    'scheduled_date_type' => gettype($c->scheduled_date),
+                    'status' => $c->status
+                ];
+            })
+        ]);
 
-        // history (all completed consultations)
+        // Jumlah pasien unik yang pernah ditangani (semua status selain pending)
+        $patientsHandledCount = ConsultationRequest::where('doctor_id', $doctor->id)
+            ->whereIn('status', ['approved', 'done', 'rejected'])
+            ->distinct('patient_id')
+            ->count('patient_id');
+
+        // History: semua konsultasi yang sudah selesai atau ditolak
         $histories = ConsultationRequest::where('doctor_id', $doctor->id)
             ->with(['patient.user'])
             ->whereIn('status', ['done', 'rejected'])
@@ -59,7 +81,7 @@ class DoctorController extends Controller
         return view('doctor.dashboard', compact(
             'pendingCount',
             'todayScheduleCount',
-            'doneCount',
+            'patientsHandledCount',
             'histories'
         ));
     }
@@ -105,26 +127,37 @@ class DoctorController extends Controller
     public function schedule(Request $request, $id)
     {
         $request->validate([
-            'scheduled_date' => 'required|date|after:today',
+            'scheduled_date' => 'required|date|after_or_equal:today',
             'scheduled_time' => 'required|date_format:H:i'
         ]);
 
         $consultation = ConsultationRequest::findOrFail($id);
         $this->authorizeDoctor($consultation);
 
-        if ($consultation->status !== 'approved') {
+        if (!in_array($consultation->status, ['pending', 'approved'])) {
             return response()->json([
-                'error' => 'Consultation must be approved first'
+                'error' => 'Consultation cannot be scheduled in its current state'
             ], 400);
         }
 
+        $wasAlreadyApproved = $consultation->status === 'approved';
+
         $consultation->update([
+            'status'         => 'approved',
             'scheduled_date' => $request->scheduled_date,
-            'scheduled_time' => $request->scheduled_time
+            'scheduled_time' => $request->scheduled_time,
         ]);
 
+        // Log approval only if it was still pending
+        if (!$wasAlreadyApproved) {
+            $doctor = $this->getDoctor();
+            ActivityLogger::logConsultationApproved($consultation, $doctor);
+        }
+
         return response()->json([
-            'message' => 'Consultation scheduled successfully',
+            'message'        => 'Consultation approved and scheduled successfully',
+            'scheduled_date' => $consultation->scheduled_date,
+            'scheduled_time' => $consultation->scheduled_time,
         ]);
     }
 

@@ -158,7 +158,7 @@ class AdminController extends Controller
      */
     public function createDoctor()
     {
-        return view('admin.create-doctor');
+        return view('admin.doctors.create');
     }
 
     /**
@@ -191,6 +191,67 @@ class AdminController extends Controller
             'gender' => $request->gender,
         ]);
 
-        return redirect('/admin/dashboard')->with('success', 'Doctor berhasil ditambahkan');
+        return redirect()->route('admin.doctors.index')->with('success', 'Doctor berhasil ditambahkan');
+    }
+
+    public function editDoctor($doctor)
+    {
+        $doctor = Doctor::with('user')->findOrFail($doctor);
+
+        return view('admin.doctors.edit', compact('doctor'));
+    }
+
+    public function updateDoctor(Request $request, $doctor)
+    {
+        $doctor = Doctor::findOrFail($doctor);
+
+        $request->validate([
+            'name' => 'required',
+            'license_number' => 'required',
+            'specialization' => 'required',
+            'gender' => 'required|in:male,female',
+        ]);
+
+        $doctor->update([
+            'name' => $request->name,
+            'license_number' => $request->license_number,
+            'specialization' => $request->specialization,
+            'gender' => $request->gender,
+        ]);
+
+        return redirect()->route('admin.doctors.index')
+            ->with('success', 'Dokter berhasil diupdate');
+    }
+
+    public function deleteDoctor($doctor)
+    {
+        $doctor = Doctor::findOrFail($doctor);
+
+        // hapus user juga
+        $doctor->user()->delete();
+        $doctor->delete();
+
+        return redirect()->route('admin.doctors.index')
+            ->with('success', 'Dokter berhasil dihapus');
+    }
+
+    public function indexDoctor()
+    {
+        $doctors = Doctor::with('user')->latest()->get();
+
+        return view('admin.doctors.index', compact('doctors'));
+    }
+
+    /**
+     * Show all registered patients (username & registration date only)
+     */
+    public function indexPatients()
+    {
+        $patients = User::where('role', 'patient')
+            ->select('id', 'username', 'created_at')
+            ->latest()
+            ->get();
+
+        return view('admin.patients.index', compact('patients'));
     }
 }

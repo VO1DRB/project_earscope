@@ -71,6 +71,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect('/patient/dashboard');
+        return redirect()->route('patient.dashboard');
     }
 }

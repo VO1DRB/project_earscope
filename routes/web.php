@@ -15,10 +15,21 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    Route::middleware(['role:admin'])->group(function () {
-        Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-        Route::get('/admin/create-doctor', [AdminController::class, 'createDoctor'])->name('admin.create-doctor');
-        Route::post('/admin/store-doctor', [AdminController::class, 'storeDoctor'])->name('admin.store-doctor');
+    Route::middleware(['role:admin'])->prefix('admin')->group(function () { 
+        Route::get('dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+
+        // Doctor Management CRUD
+        Route::prefix('doctors')->group(function () { 
+            Route::get('/', [AdminController::class, 'indexDoctor'])->name('admin.doctors.index'); 
+            Route::get('create', [AdminController::class, 'createDoctor'])->name('admin.doctors.create'); 
+            Route::post('/', [AdminController::class, 'storeDoctor'])->name('admin.doctors.store'); 
+            Route::get('{doctor}/edit', [AdminController::class, 'editDoctor'])->name('admin.doctors.edit'); 
+            Route::patch('{doctor}', [AdminController::class, 'updateDoctor'])->name('admin.doctors.update'); 
+            Route::delete('{doctor}', [AdminController::class, 'deleteDoctor'])->name('admin.doctors.delete'); 
+        });
+
+        // Patient List
+        Route::get('patients', [AdminController::class, 'indexPatients'])->name('admin.patients.index');
     });
 
     Route::middleware(['role:doctor'])->group(function () {
@@ -33,8 +44,10 @@ Route::middleware('auth')->group(function () {
 
     Route::middleware(['role:patient'])->group(function () {
         Route::get('/patient/dashboard', [PatientController::class, 'dashboard'])->name('patient.dashboard');
+        Route::get('/patient/create-consultation', [PatientController::class, 'createConsultation'])->name('patient.create-consultation');
+        Route::post('/patient/store-consultation', [PatientController::class, 'storeConsultation'])->name('patient.store-consultation');
     });
-
 });
+
 
 require __DIR__.'/auth.php';

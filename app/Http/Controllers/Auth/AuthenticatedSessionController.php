@@ -37,11 +37,11 @@ class AuthenticatedSessionController extends Controller
         }
 
         if ($user->role === 'admin') {
-            return redirect()->intended('/dashboard'); // dashboard bawaan laravel
+            return redirect()->intended(route('admin.dashboard'));
         } elseif ($user->role === 'doctor') {
-            return redirect()->intended('/doctor/dashboard');
+            return redirect()->intended(route('doctor.dashboard'));
         } elseif ($user->role === 'patient') {
-            return redirect()->intended('/patient/dashboard');
+            return redirect()->intended(route('patient.dashboard'));
         }
 
         return redirect('/');
