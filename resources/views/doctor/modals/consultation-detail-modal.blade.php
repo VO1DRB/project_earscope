@@ -60,8 +60,8 @@
                                     <p class="mt-1 text-sm text-gray-900">${data.patient.age}</p>
                                 </div>
                                 <div>
-                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</p>
-                                    <p class="mt-1 text-sm text-gray-900">${data.patient.contact}</p>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</p>
+                                    <p class="mt-1 text-sm text-gray-900">${data.patient.email}</p>
                                 </div>
                                 <div>
                                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</p>
@@ -126,8 +126,8 @@
     function getBadgeClass(status) {
         const classes = {
             'pending': 'bg-yellow-100 text-yellow-800',
-            'approved': 'bg-green-100 text-green-800',
-            'rejected': 'bg-red-100 text-red-800',
+            'scheduled': 'bg-green-100 text-green-800',
+            'cancelled': 'bg-red-100 text-red-800',
             'done': 'bg-blue-100 text-blue-800'
         };
         return classes[status] || 'bg-gray-100 text-gray-800';

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->date('birth_date');
             $table->integer('age');
             $table->text('address');
-            $table->string('contact');
+            $table->string('email');
             $table->enum('gender',['male','female']);
             $table->timestamps();
         });

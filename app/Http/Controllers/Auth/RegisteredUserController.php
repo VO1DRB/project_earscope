@@ -39,7 +39,7 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'birth_date' => ['required', 'date'],
             'address' => ['required'],
-            'contact' => ['required'],
+            'email' => ['required', 'email'],
             'gender' => ['required', 'in:male,female'],
         ]);
 
@@ -60,7 +60,7 @@ class RegisteredUserController extends Controller
             'birth_date' => $request->birth_date,
             'age' => $age,
             'address' => $request->address,
-            'contact' => $request->contact,
+            'email' => $request->email,
             'gender' => $request->gender,
         ]);
 

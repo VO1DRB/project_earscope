@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DiagnosisController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -35,6 +36,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['role:doctor'])->group(function () {
         Route::get('/doctor/dashboard', [DoctorController::class, 'dashboard'])->name('doctor.dashboard');
         Route::get('/doctor/consultations', [DoctorController::class, 'Consultations'])->name('doctor.consultations');
+        Route::get('/doctor/diagnoses', [DiagnosisController::class, 'index'])->name('doctor.diagnoses');
+        Route::post('/doctor/diagnoses', [DiagnosisController::class, 'store'])->name('doctor.diagnoses.store');
         Route::get('/doctor/patients-profile', [DoctorController::class, 'patientsProfile'])->name('doctor.patients-profile');
         Route::get('/doctor/consultation/{id}/details', [DoctorController::class, 'getConsultationDetails'])->name('consultation.details');
         Route::post('/doctor/consultation/{id}/approve', [DoctorController::class, 'approve'])->name('consultation.approve');
@@ -46,6 +49,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/patient/dashboard', [PatientController::class, 'dashboard'])->name('patient.dashboard');
         Route::get('/patient/create-consultation', [PatientController::class, 'createConsultation'])->name('patient.create-consultation');
         Route::post('/patient/store-consultation', [PatientController::class, 'storeConsultation'])->name('patient.store-consultation');
+        Route::get('/patient/consultation-results', [PatientController::class, 'consultationResults'])->name('patient.consultation.results');
+        Route::get('/patient/consultation/{id}/details', [PatientController::class, 'getConsultationDetails'])->name('patient.consultation.details');
+        Route::post('/patient/consultation/{id}/cancel', [PatientController::class, 'cancelConsultation'])->name('patient.consultation.cancel');
     });
 });
 

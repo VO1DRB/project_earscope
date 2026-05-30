@@ -45,7 +45,7 @@ class ConsultationRequestSeeder extends Seeder
                 'complaint' => 'Pendengaran dirasa berkurang sejak 3 hari yang lalu secara tiba-tiba.',
                 'scheduled_date' => Carbon::now()->addDays(5)->format('Y-m-d'),
                 'scheduled_time' => '09:00:00',
-                'status' => 'approved'
+                'status' => 'scheduled'
             ]);
         }
     }

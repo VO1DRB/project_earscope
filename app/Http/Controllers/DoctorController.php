@@ -41,40 +41,42 @@ class DoctorController extends Controller
             ->where('status', 'pending')
             ->count();
 
-        // Jumlah konsultasi yang dijadwalkan hari ini (approved & scheduled today)
+        // Jumlah konsultasi yang dijadwalkan hari ini (scheduled today)
         $todayScheduleCount = ConsultationRequest::where('doctor_id', $doctor->id)
-            ->where('status', 'approved')
+            ->where('status', 'scheduled')
             ->whereDate('scheduled_date', Carbon::today())
             ->count();
 
-        // Debug: Log what we're querying for today's date
-        $todayDebug = ConsultationRequest::where('doctor_id', $doctor->id)
-            ->where('status', 'approved')
-            ->get();
-        
-        \Log::info('Today debug for doctor ' . $doctor->id . ':', [
-            'today' => Carbon::today()->format('Y-m-d'),
-            'total_approved' => $todayDebug->count(),
-            'consultations' => $todayDebug->map(function($c) {
-                return [
-                    'id' => $c->id,
-                    'scheduled_date' => $c->scheduled_date,
-                    'scheduled_date_type' => gettype($c->scheduled_date),
-                    'status' => $c->status
-                ];
-            })
-        ]);
-
         // Jumlah pasien unik yang pernah ditangani (semua status selain pending)
         $patientsHandledCount = ConsultationRequest::where('doctor_id', $doctor->id)
-            ->whereIn('status', ['approved', 'done', 'rejected'])
+            ->whereIn('status', ['scheduled', 'done', 'cancelled'])
             ->distinct('patient_id')
             ->count('patient_id');
 
-        // History: semua konsultasi yang sudah selesai atau ditolak
-        $histories = ConsultationRequest::where('doctor_id', $doctor->id)
+        $filter = $request->get('filter', 'all');
+
+        $query = ConsultationRequest::where('doctor_id', $doctor->id)
             ->with(['patient.user'])
-            ->whereIn('status', ['done', 'rejected'])
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_date')
+            ->whereDate('scheduled_date', '>=', Carbon::today());
+
+        if ($filter === 'today') {
+            $query->whereDate('scheduled_date', Carbon::today());
+        } elseif ($filter === 'week') {
+            $query->whereBetween('scheduled_date', [Carbon::today()->startOfWeek(), Carbon::today()->endOfWeek()]);
+        } elseif ($filter === 'month') {
+            $query->whereMonth('scheduled_date', Carbon::today()->month)
+                  ->whereYear('scheduled_date', Carbon::today()->year);
+        }
+
+        $consultations = $query->orderBy('scheduled_date', 'asc')
+            ->orderBy('scheduled_time', 'asc')
+            ->get();
+
+        $pendingRequests = ConsultationRequest::where('doctor_id', $doctor->id)
+            ->where('status', 'pending')
+            ->with(['patient.user'])
             ->latest()
             ->get();
 
@@ -82,7 +84,9 @@ class DoctorController extends Controller
             'pendingCount',
             'todayScheduleCount',
             'patientsHandledCount',
-            'histories'
+            'consultations',
+            'filter',
+            'pendingRequests'
         ));
     }
 
@@ -91,14 +95,14 @@ class DoctorController extends Controller
         $consultation = ConsultationRequest::findOrFail($id);
         $this->authorizeDoctor($consultation);
 
-        $consultation->update(['status' => 'approved']);
+        $consultation->update(['status' => 'scheduled']);
         
         // Log consultation approval
         $doctor = $this->getDoctor();
         ActivityLogger::logConsultationApproved($consultation, $doctor);
 
         return response()->json([
-            'message' => 'Consultation approved successfully',
+            'message' => 'Consultation scheduled successfully',
             'status' => $consultation->status
         ]);
     }
@@ -112,7 +116,7 @@ class DoctorController extends Controller
         $consultation = ConsultationRequest::findOrFail($id);
         $this->authorizeDoctor($consultation);
 
-        $consultation->update(['status' => 'rejected']);
+        $consultation->update(['status' => 'cancelled']);
         
         // Log consultation rejection
         $doctor = $this->getDoctor();
@@ -134,28 +138,28 @@ class DoctorController extends Controller
         $consultation = ConsultationRequest::findOrFail($id);
         $this->authorizeDoctor($consultation);
 
-        if (!in_array($consultation->status, ['pending', 'approved'])) {
+        if (!in_array($consultation->status, ['pending', 'scheduled'])) {
             return response()->json([
                 'error' => 'Consultation cannot be scheduled in its current state'
             ], 400);
         }
 
-        $wasAlreadyApproved = $consultation->status === 'approved';
+        $wasAlreadyScheduled = $consultation->status === 'scheduled';
 
         $consultation->update([
-            'status'         => 'approved',
+            'status'         => 'scheduled',
             'scheduled_date' => $request->scheduled_date,
             'scheduled_time' => $request->scheduled_time,
         ]);
 
         // Log approval only if it was still pending
-        if (!$wasAlreadyApproved) {
+        if (!$wasAlreadyScheduled) {
             $doctor = $this->getDoctor();
             ActivityLogger::logConsultationApproved($consultation, $doctor);
         }
 
         return response()->json([
-            'message'        => 'Consultation approved and scheduled successfully',
+            'message'        => 'Consultation scheduled successfully',
             'scheduled_date' => $consultation->scheduled_date,
             'scheduled_time' => $consultation->scheduled_time,
         ]);
@@ -163,7 +167,7 @@ class DoctorController extends Controller
 
     public function getConsultationDetails($id)
     {
-        $consultation = ConsultationRequest::with('patient')->findOrFail($id);
+        $consultation = ConsultationRequest::with('patient.user')->findOrFail($id);
         $this->authorizeDoctor($consultation);
 
         return response()->json([
@@ -177,7 +181,7 @@ class DoctorController extends Controller
                 'id' => $consultation->patient->id,
                 'name' => $consultation->patient->name,
                 'age' => $consultation->patient->age,
-                'contact' => $consultation->patient->contact,
+                'email' => $consultation->patient->user->email ?? null,
                 'gender' => $consultation->patient->gender,
                 'address' => $consultation->patient->address,
                 'birth_date' => $consultation->patient->birth_date
@@ -202,10 +206,14 @@ class DoctorController extends Controller
             ->with(['patient.user']);
 
         if ($status !== 'all') {
-            $query->where('status', $status);
+            $query->where('status', $status)
+                  ->latest();
+        } else {
+            $query->orderByRaw("CASE WHEN status = 'pending' THEN 0 WHEN status = 'scheduled' THEN 1 WHEN status = 'cancelled' THEN 2 WHEN status = 'done' THEN 3 ELSE 4 END")
+                  ->orderBy('created_at', 'desc');
         }
 
-        $consultations = $query->latest()->get();
+        $consultations = $query->get();
 
         return view('doctor.consultations', compact('consultations', 'status'));
     }

@@ -115,12 +115,12 @@
                 scheduled_time: scheduledTime
             },
             success: function(response) {
-                showScheduleSuccess('Konsultasi berhasil disetujui dan dijadwalkan!');
+                showScheduleSuccess('Konsultasi berhasil dijadwalkan!');
 
                 // Update status badge
                 let statusBadge = $('#status-' + consultationId);
                 statusBadge.removeClass('bg-yellow-100 text-yellow-800 bg-red-100 text-red-800')
-                           .addClass('bg-green-100 text-green-800').text('Approved');
+                           .addClass('bg-green-100 text-green-800').text('Scheduled');
 
                 // Update scheduled date cell
                 let row = $('#row-' + consultationId);
