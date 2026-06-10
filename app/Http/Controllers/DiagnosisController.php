@@ -11,18 +11,37 @@ use Illuminate\Support\Facades\Auth;
 
 class DiagnosisController extends Controller
 {
+    public function index()
+    {
+        $doctor = Auth::user()->doctor;
+
+        if (!$doctor) {
+            abort(403, 'Doctor not found');
+        }
+
+        $consultations = ConsultationRequest::where('doctor_id', $doctor->id)
+            ->where('status', 'scheduled')
+            ->whereDoesntHave('diagnosis')
+            ->with('patient')
+            ->orderBy('scheduled_date', 'asc')
+            ->orderBy('scheduled_time', 'asc')
+            ->get();
+
+        return view('doctor.diagnoses', compact('consultations'));
+    }
+
     public function store(Request $request)
     {
         $request->validate([
-            'consultation_req_id' => 'required',
-            'result' => 'required',
+            'consultation_request_id' => 'required|exists:consultation_requests,id',
+            'diagnosis_result' => 'required',
             'notes' => 'nullable',
             'image' => 'nullable|image'
         ]);
 
         $diagnosis = Diagnosis::create([
-            'consultation_req_id' => $request->consultation_req_id,
-            'result' => $request->result,
+            'consultation_request_id' => $request->consultation_request_id,
+            'diagnosis_result' => $request->diagnosis_result,
             'notes' => $request->notes,
         ]);
 
@@ -36,8 +55,6 @@ class DiagnosisController extends Controller
             ]);
         }
         
-        // Log consultation uploaded (diagnosis result)
-        $consultation = ConsultationRequest::findOrFail($request->consultation_req_id);
         $doctor = Auth::user()->doctor;
         if ($doctor) {
             ActivityLogger::logConsultationUploaded($diagnosis, $doctor);

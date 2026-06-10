@@ -53,7 +53,7 @@ class UserSeeder extends Seeder
             'birth_date' => '1995-05-15',
             'age' => 31,
             'address' => 'Jl. Kebon Jeruk No. 123',
-            'contact' => '081234567890',
+            'email' => 'jane.doe@example.com',
             'gender' => 'female'
         ]);
     }

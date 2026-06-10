@@ -18,7 +18,7 @@ return new class extends Migration
             $table->text('complaint');
             $table->date('scheduled_date')->nullable();
             $table->time('scheduled_time')->nullable();
-            $table->enum('status',['pending','approved','rejected','done'])->default('pending');
+            $table->enum('status',['pending','scheduled','cancelled','done'])->default('pending');
             $table->timestamps();
             $table->index(['patient_id','doctor_id']);
         });

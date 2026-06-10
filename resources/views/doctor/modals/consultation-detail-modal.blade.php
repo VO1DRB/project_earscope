@@ -75,130 +75,34 @@
             type: 'GET',
             dataType: 'json',
             success: function(data) {
-                renderModalContent(data);
-            },
-            error: function() {
-                $('#modalContent').html('<p class="text-rose-500 text-sm text-center py-8">Gagal memuat data. Silakan coba lagi.</p>');
-            }
-        });
-    }
-
-    function renderModalContent(data) {
-        const statusMap = {
-            'pending': ['bg-amber-50 text-amber-700 border-amber-200', 'Menunggu'],
-            'approved': ['bg-emerald-50 text-emerald-700 border-emerald-200', 'Disetujui'],
-            'rejected': ['bg-rose-50 text-rose-700 border-rose-200', 'Ditolak'],
-            'done': ['bg-sky-50 text-sky-700 border-sky-200', 'Selesai'],
-        };
-        const [statusClass, statusLabel] = statusMap[data.status] || ['bg-slate-50 text-slate-700 border-slate-200', data.status];
-        const gender = data.patient?.gender === 'male' ? 'Laki-laki' : 'Perempuan';
-
-        // ── AI Screening Section ──────────────────────────────────
-        let aiSection = '';
-        if (data.diagnosis) {
-            const d = data.diagnosis;
-            const verifiedBadge = d.is_verified
-                ? `<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-sky-50 border border-sky-200 text-sky-700">✓ Terverifikasi Dokter</span>`
-                : `<span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 border border-amber-200 text-amber-700 animate-pulse">⏳ Menunggu Verifikasi</span>`;
-
-            // Images
-            let imagesHtml = '';
-            if (d.images && d.images.length > 0) {
-                imagesHtml = d.images.map((img, idx) => {
-                    let aiMeta = '';
-                    if (img.ai_screening_result) {
-                        const ai = img.ai_screening_result;
-                        const confidence = ai.confidence ? (ai.confidence * 100).toFixed(1) + '%' : '-';
-                        aiMeta = `<p class="text-[10px] text-slate-500 mt-1 font-medium">
-                            Kelas: <span class="font-bold text-teal-700">${ai.class || '-'}</span> &bull;
-                            Kepercayaan: <span class="font-bold text-teal-700">${confidence}</span>
-                        </p>`;
-                    }
-                    return `
-                        <div class="shrink-0 w-48">
-                            <img src="${img.image_url}" alt="Otoskop ${idx+1}"
-                                 class="w-full h-36 object-cover rounded-xl border border-slate-100 cursor-pointer hover:opacity-90 transition"
-                                 onclick="window.open('${img.image_url}','_blank')" />
-                            ${aiMeta}
-                        </div>`;
-                }).join('');
-                imagesHtml = `<div class="flex gap-3 overflow-x-auto pb-2 mt-3">${imagesHtml}</div>`;
-            } else {
-                imagesHtml = `<p class="text-xs text-slate-400 italic mt-2">Belum ada gambar otoskop diunggah.</p>`;
-            }
-
-            const noteVal = d.notes ? d.notes : '';
-
-            aiSection = `
-                <div class="mt-5 pt-5 border-t border-slate-100">
-                    <div class="flex items-center justify-between mb-3">
-                        <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
-                            <svg class="w-4 h-4 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            Hasil Pemeriksaan AI Jetson
-                        </h4>
-                        ${verifiedBadge}
-                    </div>
-
-                    <div class="bg-teal-50/50 border border-teal-100 rounded-xl p-4">
-                        <p class="text-[10px] text-teal-600 font-bold uppercase tracking-wider mb-1">Diagnosis Awal AI</p>
-                        <p class="text-sm font-bold text-slate-800">${d.diagnosis_result}</p>
-                    </div>
-
-                    <div class="mt-3">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Foto Otoskop Telinga</p>
-                        ${imagesHtml}
-                    </div>
-                    ${!d.is_verified && data.status !== 'done' ? `
-                    <div class="mt-4 pt-4 border-t border-dashed border-slate-200">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Catatan Akhir & Verifikasi Dokter</p>
-                        <form id="verifyForm" onsubmit="submitVerification(event, ${data.id})">
-                            <textarea id="doctorNotes" name="notes" rows="3" placeholder="Tuliskan catatan klinis atau resep untuk pasien..."
-                                class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent resize-none"></textarea>
-                        </form>
-                    </div>` : ''}
-                    ${d.notes && d.is_verified ? `
-                    <div class="mt-3 bg-sky-50/60 border border-sky-100 rounded-xl p-4">
-                        <p class="text-[10px] text-sky-600 font-bold uppercase tracking-wider mb-1">Catatan Akhir Dokter</p>
-                        <p class="text-sm text-slate-700">${d.notes || '-'}</p>
-                    </div>` : ''}
-                </div>`;
-        } else if (data.status === 'approved') {
-            aiSection = `
-                <div class="mt-5 pt-5 border-t border-slate-100">
-                    <div class="flex items-center gap-2 mb-3">
-                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Hasil Pemeriksaan AI Jetson</p>
-                    </div>
-                    <div class="bg-slate-50 border border-dashed border-slate-200 rounded-xl p-6 text-center">
-                        <p class="text-sm text-slate-400 font-medium">Menunggu perangkat Jetson mengunggah hasil pemeriksaan otoskop...</p>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-dashed border-slate-200">
-                        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Selesaikan Konsultasi Secara Manual</p>
-                        <form id="verifyForm" onsubmit="submitVerification(event, ${data.id})">
-                            <textarea id="doctorNotes" name="notes" rows="3" placeholder="Tuliskan catatan diagnosis manual jika pemeriksaan dilakukan secara langsung..."
-                                class="w-full text-sm border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent resize-none"></textarea>
-                        </form>
-                    </div>
-                </div>`;
-        }
-
-        const content = `
-            <div class="space-y-5">
-                {{-- Patient Info --}}
-                <div>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Informasi Pasien</p>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Nama</p>
-                            <p class="text-sm font-bold text-slate-800 mt-0.5">${data.patient?.name ?? '-'}</p>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3">
-                            <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Usia</p>
-                            <p class="text-sm font-bold text-slate-800 mt-0.5">${data.patient?.age ?? '-'} Tahun</p>
+                // Build the modal content
+                let statusBadge = getBadgeClass(data.status);
+                let content = `
+                    <div class="space-y-4">
+                        <div class="border-b pb-4">
+                            <h4 class="font-semibold text-gray-900 mb-3">Patient Information</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Name</p>
+                                    <p class="mt-1 text-sm text-gray-900">${data.patient.name}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Age</p>
+                                    <p class="mt-1 text-sm text-gray-900">${data.patient.age}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</p>
+                                    <p class="mt-1 text-sm text-gray-900">${data.patient.email}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</p>
+                                    <p class="mt-1 text-sm text-gray-900">${data.patient.gender}</p>
+                                </div>
+                                <div class="col-span-2">
+                                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</p>
+                                    <p class="mt-1 text-sm text-gray-900">${data.patient.address}</p>
+                                </div>
+                            </div>
                         </div>
                         <div class="bg-slate-50 rounded-xl p-3">
                             <p class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Kontak</p>
@@ -290,7 +194,16 @@
 
     function closeDetailModal() {
         $('#consultationDetailModal').addClass('hidden');
-        currentConsultationId = null;
+    }
+
+    function getBadgeClass(status) {
+        const classes = {
+            'pending': 'bg-yellow-100 text-yellow-800',
+            'scheduled': 'bg-green-100 text-green-800',
+            'cancelled': 'bg-red-100 text-red-800',
+            'done': 'bg-blue-100 text-blue-800'
+        };
+        return classes[status] || 'bg-gray-100 text-gray-800';
     }
 
     // Close on overlay click handled inline

@@ -62,65 +62,64 @@
 
             </div>
 
-            <!-- HISTORY TABLE -->
-            <div class="bg-white shadow-sm border border-slate-100 rounded-2xl overflow-hidden">
-                <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div>
-                        <h3 class="font-bold text-lg text-slate-800">Riwayat Pemeriksaan Pasien</h3>
-                        <p class="text-xs text-slate-400 font-medium mt-0.5">Daftar lengkap sesi konsultasi yang telah dikelola</p>
+            <!-- UPCOMING CONSULTATIONS -->
+            <div class="bg-white shadow rounded-lg p-6 overflow-x-auto">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+                    <h3 class="font-bold text-lg">Upcoming Consultation</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ route('doctor.dashboard', ['filter' => 'all']) }}"
+                           class="px-4 py-2 rounded-md text-sm font-medium {{ $filter === 'all' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            All
+                        </a>
+                        <a href="{{ route('doctor.dashboard', ['filter' => 'today']) }}"
+                           class="px-4 py-2 rounded-md text-sm font-medium {{ $filter === 'today' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Hari Ini
+                        </a>
+                        <a href="{{ route('doctor.dashboard', ['filter' => 'week']) }}"
+                           class="px-4 py-2 rounded-md text-sm font-medium {{ $filter === 'week' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Minggu Ini
+                        </a>
+                        <a href="{{ route('doctor.dashboard', ['filter' => 'month']) }}"
+                           class="px-4 py-2 rounded-md text-sm font-medium {{ $filter === 'month' ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                            Bulan Ini
+                        </a>
                     </div>
-                    <a href="{{ route('doctor.consultations') }}" class="inline-flex items-center gap-1.5 text-xs font-bold text-teal-600 hover:text-teal-700 transition">
-                        Lihat Permintaan Konsultasi
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                    </a>
                 </div>
 
-                @if($histories->isEmpty())
-                    <div class="text-center py-16 px-6">
-                        <div class="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto text-slate-400 mb-3 animate-float">
-                            <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                        </div>
-                        <h4 class="text-base font-bold text-slate-700">Tidak Ada Riwayat Konsultasi</h4>
-                        <p class="text-xs text-slate-400 mt-1">Belum ada pasien yang selesai ditangani di klinik Anda.</p>
-                    </div>
+                @if($consultations->isEmpty())
+                    <p class="text-gray-500">No scheduled consultations found for the selected period.</p>
                 @else
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="bg-slate-50/75 border-b border-slate-100 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                                    <th class="px-6 py-4">Pasien</th>
-                                    <th class="px-6 py-4">Keluhan Diagnosis</th>
-                                    <th class="px-6 py-4">Tanggal Penanganan</th>
-                                    <th class="px-6 py-4">Status Layanan</th>
+                    <div class="overflow-x-auto rounded-lg shadow">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr class="text-left text-xs text-gray-500 uppercase">
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Complaint</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheduled Date</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100 text-sm">
-                                @foreach($histories as $history)
-                                    <tr class="hover:bg-slate-50/40 transition-colors duration-250">
-                                        <td class="px-6 py-4">
-                                            <div class="flex items-center gap-3">
-                                                <div class="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0 border border-teal-100/30">
-                                                    <span class="text-teal-700 text-xs font-bold">
-                                                        {{ strtoupper(substr($history->patient->name ?? 'P', 0, 1)) }}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <span class="font-bold text-slate-800">
-                                                        {{ $history->patient->name ?? '-' }}
-                                                    </span>
-                                                    <p class="text-[10px] text-slate-400 font-semibold mt-0.5">ID: #C-00{{ $history->id }}</p>
-                                                </div>
-                                            </div>
+
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($consultations as $consultation)
+                                    <tr class="border-t">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $consultation->patient->name ?? 'N/A' }}
                                         </td>
-                                        <td class="px-6 py-4 text-slate-600 font-medium max-w-xs truncate">
-                                            {{ Str::limit($history->complaint, 55) }}
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ Str::limit($consultation->complaint, 40) }}
                                         </td>
-                                        <td class="px-6 py-4 text-slate-500 font-medium">
-                                            {{ $history->created_at->format('d M Y') }}
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ \Carbon\Carbon::parse($consultation->scheduled_date)->format('d M Y') }}
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $consultation->scheduled_time ?? '-' }}
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                {{ ucfirst($consultation->status) }}
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4">
                                             @php
@@ -134,6 +133,55 @@
                                             @endphp
                                             <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border {{ $s['class'] }}">
                                                 {{ $s['label'] }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+
+            <!-- WAITING FOR APPROVAL -->
+            <div class="bg-white shadow rounded-lg p-6 overflow-x-auto">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="font-bold text-lg">Waiting for Approval</h3>
+                    <span class="text-sm text-gray-500">{{ $pendingRequests->count() }} request(s)</span>
+                </div>
+
+                @if($pendingRequests->isEmpty())
+                    <p class="text-gray-500">No pending consultation requests at the moment.</p>
+                @else
+                    <div class="overflow-x-auto rounded-lg shadow">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr class="text-left text-xs text-gray-500 uppercase">
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Complaint</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested At</th>
+                                    <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($pendingRequests as $request)
+                                    <tr class="border-t">
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $request->patient->name ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                                            {{ $request->patient->user->email ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ Str::limit($request->complaint, 40) }}
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $request->created_at->format('d M Y') }}
+                                        </td>
+                                        <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                {{ ucfirst($request->status) }}
                                             </span>
                                         </td>
                                     </tr>

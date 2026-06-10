@@ -30,11 +30,11 @@
             <x-input-error :messages="$errors->get('address')" class="mt-2" />
         </div>
 
-        <!-- Kontak -->
+        <!-- Email -->
         <div class="mt-4">
-            <x-input-label for="contact" value="Kontak" />
-            <x-text-input id="contact" class="block mt-1 w-full" type="text" name="contact" :value="old('contact')" required />
-            <x-input-error :messages="$errors->get('contact')" class="mt-2" />
+            <x-input-label for="email" value="Email" />
+            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required />
+            <x-input-error :messages="$errors->get('email')" class="mt-2" />
         </div>
 
         <!-- Gender -->
