@@ -8,8 +8,9 @@
         <title>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
         <!-- jQuery -->
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -17,8 +18,8 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
+    <body class="font-sans antialiased bg-slate-50 text-slate-800 selection:bg-teal-500 selection:text-white">
+        <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-teal-50/20">
             @include('layouts.navigation')
 
             <!-- Page Heading -->

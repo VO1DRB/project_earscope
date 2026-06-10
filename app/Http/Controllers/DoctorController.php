@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ConsultationRequest;
+use App\Models\Diagnosis;
 use App\Helpers\ActivityLogger;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -163,8 +164,25 @@ class DoctorController extends Controller
 
     public function getConsultationDetails($id)
     {
-        $consultation = ConsultationRequest::with('patient')->findOrFail($id);
+        $consultation = ConsultationRequest::with(['patient', 'diagnosis.images'])->findOrFail($id);
         $this->authorizeDoctor($consultation);
+
+        $diagnosisData = null;
+        if ($consultation->diagnosis) {
+            $d = $consultation->diagnosis;
+            $diagnosisData = [
+                'id' => $d->id,
+                'diagnosis_result' => $d->diagnosis_result,
+                'notes' => $d->notes,
+                'is_verified' => $d->is_verified,
+                'images' => $d->images->map(fn($img) => [
+                    'id' => $img->id,
+                    'image_url' => asset('storage/' . $img->image_path),
+                    'ai_screening_result' => $img->ai_screening_result,
+                    'created_at' => $img->created_at,
+                ]),
+            ];
+        }
 
         return response()->json([
             'id' => $consultation->id,
@@ -173,6 +191,7 @@ class DoctorController extends Controller
             'created_at' => $consultation->created_at,
             'scheduled_date' => $consultation->scheduled_date,
             'scheduled_time' => $consultation->scheduled_time,
+            'diagnosis' => $diagnosisData,
             'patient' => $consultation->patient ? [
                 'id' => $consultation->patient->id,
                 'name' => $consultation->patient->name,
@@ -199,7 +218,7 @@ class DoctorController extends Controller
         $status = $request->get('status', 'all');
 
         $query = ConsultationRequest::where('doctor_id', $doctor->id)
-            ->with(['patient.user']);
+            ->with(['patient.user', 'diagnosis.images']);
 
         if ($status !== 'all') {
             $query->where('status', $status);
@@ -208,6 +227,52 @@ class DoctorController extends Controller
         $consultations = $query->latest()->get();
 
         return view('doctor.consultations', compact('consultations', 'status'));
+    }
+
+    public function verifyDiagnosis(Request $request, $id)
+    {
+        $request->validate([
+            'notes' => 'nullable|string|max:1000',
+        ]);
+
+        $consultation = ConsultationRequest::findOrFail($id);
+        $this->authorizeDoctor($consultation);
+
+        $diagnosis = $consultation->diagnosis;
+
+        if (!$diagnosis) {
+            // Jika hasil Jetson belum diunggah tetapi dokter ingin menyelesaikan secara manual
+            $diagnosis = Diagnosis::create([
+                'consultation_request_id' => $consultation->id,
+                'diagnosis_result' => 'Diagnosis Manual',
+                'is_verified' => true,
+                'notes' => $request->notes,
+            ]);
+        } else {
+            $diagnosis->update([
+                'notes' => $request->notes,
+                'is_verified' => true,
+            ]);
+        }
+
+        // Ubah status konsultasi ke done
+        $consultation->update(['status' => 'done']);
+
+        // Log activity
+        $doctor = $this->getDoctor();
+        ActivityLogger::log(
+            'consultation_verified',
+            "Dokter '{$doctor->name}' memverifikasi diagnosis pasien '{$consultation->patient->name}'",
+            [
+                'consultation_id' => $consultation->id,
+                'diagnosis_id' => $diagnosis->id,
+                'doctor_id' => $doctor->id,
+                'notes' => $request->notes,
+            ],
+            $doctor->user_id
+        );
+
+        return redirect()->route('doctor.consultations')->with('success', 'Konsultasi berhasil diverifikasi dan diselesaikan.');
     }
 
     public function patientsProfile()

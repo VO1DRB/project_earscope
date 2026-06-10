@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/doctor/consultation/{id}/approve', [DoctorController::class, 'approve'])->name('consultation.approve');
         Route::post('/doctor/consultation/{id}/reject', [DoctorController::class, 'reject'])->name('consultation.reject');
         Route::post('/doctor/consultation/{id}/schedule', [DoctorController::class, 'schedule'])->name('consultation.schedule');
+        Route::post('/doctor/consultation/{id}/verify', [DoctorController::class, 'verifyDiagnosis'])->name('consultation.verify');
     });
 
     Route::middleware(['role:patient'])->group(function () {

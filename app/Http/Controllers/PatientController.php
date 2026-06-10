@@ -13,7 +13,7 @@ class PatientController extends Controller
     {
         $patient = auth()->user()->patient;
 
-        $consultations = $patient->consultations()->with('doctor')->latest()->get();
+        $consultations = $patient->consultations()->with(['doctor', 'diagnosis.images'])->latest()->get();
 
         return view('patient.dashboard', compact('consultations'));
     }

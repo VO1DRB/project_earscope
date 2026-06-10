@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('consultation_request_id')->constrained()->cascadeOnDelete();
             $table->text('diagnosis_result');
             $table->text('notes')->nullable();
+            $table->boolean('is_verified')->default(false);
             $table->timestamps();
             $table->unique('consultation_request_id');
         });
