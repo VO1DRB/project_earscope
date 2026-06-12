@@ -11,11 +11,9 @@ class Diagnosis extends Model
         'consultation_request_id',
         'diagnosis_result',
         'notes',
-        'is_verified'
-    ];
-
-    protected $casts = [
-        'is_verified' => 'boolean',
+        'ai_result',
+        'raw_video_path',
+        'processed_video_path',
     ];
 
     public function consultationRequest()

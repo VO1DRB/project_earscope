@@ -5,11 +5,29 @@ use App\Http\Controllers\DoctorController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\DiagnosisController;
+use App\Http\Controllers\Api\EarscopeApiController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Earscope API Routes (tanpa auth, diakses dari Flask & dokter via AJAX)
+|--------------------------------------------------------------------------
+*/
+Route::withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->prefix('api/earscope')
+    ->group(function () {
+        // Menerima hasil dari Flask (POST)
+        Route::post('/diagnosis-result', [EarscopeApiController::class, 'receive'])
+            ->name('api.earscope.receive');
+
+        // Polling hasil terbaru oleh halaman diagnosa dokter (GET)
+        Route::get('/latest-result', [EarscopeApiController::class, 'latest'])
+            ->name('api.earscope.latest');
+    });
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

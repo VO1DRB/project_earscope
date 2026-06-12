@@ -39,22 +39,31 @@ class DiagnosisController extends Controller
             'image' => 'nullable|image'
         ]);
 
-        $diagnosis = Diagnosis::create([
-            'consultation_request_id' => $request->consultation_request_id,
-            'diagnosis_result' => $request->diagnosis_result,
-            'notes' => $request->notes,
-        ]);
+        // Gunakan updateOrCreate agar tidak duplikat jika data earscope sudah ada
+        $diagnosis = Diagnosis::updateOrCreate(
+            ['consultation_request_id' => $request->consultation_request_id],
+            [
+                'diagnosis_result' => $request->diagnosis_result,
+                'notes'            => $request->notes,
+            ]
+        );
 
         // upload gambar
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('diagnosis_images', 'public');
 
-            DiagnosisImage::create([
-                'diagnosis_id' => $diagnosis->id,
-                'image_path' => $path,
-            ]);
+            DiagnosisImage::updateOrCreate(
+                ['diagnosis_id' => $diagnosis->id],
+                ['image_path'   => $path]
+            );
         }
-        
+
+        // Tandai konsultasi sebagai 'done'
+        $consultation = $diagnosis->consultation;
+        if ($consultation && $consultation->status === 'scheduled') {
+            $consultation->update(['status' => 'done']);
+        }
+
         $doctor = Auth::user()->doctor;
         if ($doctor) {
             ActivityLogger::logConsultationUploaded($diagnosis, $doctor);
